@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>P5.js Sketch</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.dom.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: serif;
+      letter-spacing: 1px;
+      font-size: 11px;
+      font-variation-settings: "wdth" 75;
+    }
+    #background {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 80px;
+      z-index: 0;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      border-radius: 15px;
+      padding: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #FFFFFF;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+      width: calc(100% - 20px);
+      box-sizing: border-box;
+    }
+    #controls img {
+      margin-left: auto;
+      width: 200px;
+      height: auto;
+    }
+    button, input[type="range"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      border: none;
+      margin: 5px;
+    }
+    button {
+      background-color: black;
+      color: white;
+      padding: 10px 13px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      border-radius: 30px;
+    }
+    button:hover {
+      background-color: #FFAA80;
+      color: black;
+    }
+    input[type="range"] {
+      width: 60px;
+      height: 4px;
+      background-color: black;
+      cursor: pointer;
+      padding: 0;
+      margin: 5px;
+      position: relative;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 100%;
+      background: black;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      background: black;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-top: -7px;
+      border: 2px solid black;
+    }
+    input[type="range"]::-moz-range-track {
+      background: black;
+      width: 100%;
+      height: 100%;
+    }
+    input[type="range"]::-moz-range-thumb {
+      background: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid black;
+    }
+    input[type="range"]::-ms-track {
+      background: black;
+      width: 100%;
+      height: 100%;
+      color: transparent;
+    }
+    input[type="range"]::-ms-thumb {
+      background: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid black;
+    }
+    label {
+      color: black;
+      font-size: 11px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .info-text {
+      margin-left: 10px;
+      font-size: 11px;
+      color: black;
+      display: flex;
+      align-items: center;
+    }
+    #fontFileInput {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="background"></div>
+  <div id="controls">
+    <button id="pasteButton">PEGAR</button>
+    <button id="fontButton">CAMBIAR FUENTE</button>
+    <button id="toggleEffectButton">ON/OFF INKBLEED</button>
+    <button id="saveButton">.PNG</button>
+    <button id="resetEffectButton">RESET EFECTO</button>
+    <button id="clearButton">BORRAR TEXTO</button>
+    <input type="file" id="fontFileInput" accept=".ttf, .otf">
+    <label for="spacingSlider">TAMAÑO MAGNETO</label>
+    <input type="range" id="spacingSlider" min="1" max="10" value="1">
+    <label for="cellSizeSlider">TAMAÑO LETRAS</label>
+    <input type="range" id="cellSizeSlider" min="10" max="50" value="50">
+    <label for="cellWidthSlider">ESPACIADO</label>
+    <input type="range" id="cellWidthSlider" min="10" max="25" value="17.5">
+    <img src="TOOLS.svg" alt="Tools Icon">
+  </div>
+  <script>
+    let inputText = ' hola,               esto es una herramienta digital para el rastro®, pega un cuerpo de texto con el boton e interactua con el cursor.            gracias';
+    let letters = [];
+    let thickness = [];
+    let cols, rows;
+    let scl = 20;
+    let cellWidth = 17.5;
+    let mousePressedFlag = false;
+    let currentFont;
+    let resetPositions = false;
+    let outlineMode = false;
+    let spacing = 1;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight, P2D);
+      currentFont = 'serif';
+      textFont(currentFont);
+      textSize(scl);
+      textAlign(CENTER, CENTER);
+
+      select('#pasteButton').mousePressed(pasteTextFromClipboard);
+      select('#fontButton').mousePressed(openFontFileDialog);
+      select('#clearButton').mousePressed(clearText);
+      select('#saveButton').mousePressed(saveImage);
+      select('#toggleEffectButton').mousePressed(toggleEffect);
+      select('#resetEffectButton').mousePressed(resetEffect);
+      select('#fontFileInput').changed(loadFontFile);
+
+      spacingSlider = select('#spacingSlider');
+      cellSizeSlider = select('#cellSizeSlider');
+      cellWidthSlider = select('#cellWidthSlider');
+
+      spacingSlider.value(1);
+      cellSizeSlider.value(50);
+      cellWidthSlider.value(17.5);
+
+      calculatePositions();
+
+      cellWidthSlider.input(updateCellWidth);
+      spacingSlider.input(updateSpacing);
+    }
+
+    function draw() {
+      background(255);
+      fill(0);
+      spacing = spacingSlider.value();
+      let newScl = cellSizeSlider.value();
+      let newCellWidth = cellWidthSlider.value();
+
+      if (newScl !== scl) {
+        scl = newScl;
+        textSize(scl);
+        calculatePositions();
+      }
+
+      if (newCellWidth !== cellWidth) {
+        cellWidth = newCellWidth;
+        calculatePositions();
+      }
+
+      let textIndex = 0;
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          if (textIndex < inputText.length) {
+            let pos = letters[i][j];
+
+            if (outlineMode && mousePressedFlag) {
+              let d = dist(mouseX, mouseY, pos.x, pos.y);
+              if (d < scl / 2) {
+                thickness[i][j] += 0.5;  // Aumentar este valor para hacer que el efecto sea más rápido
+              }
+            } else if (mousePressedFlag) {
+              let d = dist(mouseX, mouseY, pos.x, pos.y);
+              if (d < scl * spacing) {
+                let angle = atan2(pos.y - mouseY, pos.x - mouseX);
+                pos.x += cos(angle) * spacing;
+                pos.y += sin(angle) * spacing;
+              }
+            } else if (resetPositions) {
+              let target = createVector(i * cellWidth + cellWidth / 2, j * scl + scl / 2);
+              pos.x = lerp(pos.x, target.x, 0.05);
+              pos.y = lerp(pos.y, target.y, 0.05);
+            }
+
+            if (thickness[i][j] > 0) {
+              for (let dx = -Math.ceil(thickness[i][j]); dx <= Math.ceil(thickness[i][j]); dx++) {
+                for (let dy = -Math.ceil(thickness[i][j]); dy <= Math.ceil(thickness[i][j]); dy++) {
+                  text(inputText.charAt(textIndex), pos.x + dx, pos.y + dy);
+                }
+              }
+            }
+
+            text(inputText.charAt(textIndex), pos.x, pos.y);
+            textIndex++;
+          }
+        }
+      }
+
+      if (resetPositions && textIndex >= inputText.length) {
+        resetPositions = false;
+      }
+    }
+
+    function mousePressed() {
+      if (!isMouseOverControls()) {
+        mousePressedFlag = true;
+      }
+    }
+
+    function mouseReleased() {
+      mousePressedFlag = false;
+    }
+
+    function pasteTextFromClipboard() {
+      navigator.clipboard.readText().then(text => {
+        inputText += text;  // Añadir el texto al final del texto actual
+        calculatePositions();
+      });
+    }
+
+    function openFontFileDialog() {
+      select('#fontFileInput').elt.click();
+    }
+
+    function loadFontFile() {
+      let file = select('#fontFileInput').elt.files[0];
+      if (file) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          let font = loadFont(e.target.result, () => {
+            currentFont = font;
+            textFont(currentFont);
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function saveImage() {
+      saveCanvas('sketch', 'png');
+    }
+
+    function clearText() {
+      inputText = '';  // Limpiar el texto
+      calculatePositions();
+    }
+
+    function toggleEffect() {
+      outlineMode = !outlineMode;
+    }
+
+    function resetEffect() {
+      thickness = [];  // Limpiar el efecto
+      calculatePositions();  // Recalcular posiciones sin borrar el texto
+    }
+
+    function calculatePositions() {
+      cols = Math.floor(width / cellWidth);
+      rows = Math.floor(height / scl);
+      letters = [];
+      thickness = [];
+      for (let i = 0; i < cols; i++) {
+        letters[i] = [];
+        thickness[i] = [];
+        for (let j = 0; j < rows; j++) {
+          letters[i][j] = createVector(i * cellWidth + cellWidth / 2, j * scl + scl / 2);
+          thickness[i][j] = 0;
+        }
+      }
+    }
+
+    function updateCellWidth() {
+      cellWidth = cellWidthSlider.value();
+      calculatePositions();
+    }
+
+    function updateSpacing() {
+      spacing = spacingSlider.value();
+      // No recalcular posiciones aquí para no resetear el efecto
+    }
+
+    function isMouseOverControls() {
+      let controls = document.getElementById('controls');
+      let rect = controls.getBoundingClientRect();
+      return (
+        mouseX >= rect.left &&
+        mouseX <= rect.right &&
+        mouseY >= rect.top &&
+        mouseY <= rect.bottom
+      );
+    }
+  </script>
+</body>
+</html>
