@@ -64,6 +64,14 @@
       background-color: #FFAA80;
       color: black;
     }
+    .red-button {
+      background-color: red;
+      color: white;
+    }
+    .red-button:hover {
+      background-color: white;
+      color: red;
+    }
     input[type="range"] {
       width: 60px;
       height: 4px;
@@ -138,7 +146,7 @@
     <button id="toggleEffectButton">ON/OFF INKBLEED</button>
     <button id="saveButton">.PNG</button>
     <button id="resetEffectButton">RESET EFECTO</button>
-    <button id="clearButton">BORRAR TEXTO</button>
+    <button id="clearButton" class="red-button">BORRAR TEXTO</button>
     <input type="file" id="fontFileInput" accept=".ttf, .otf">
     <label for="spacingSlider">TAMAÑO MAGNETO</label>
     <input type="range" id="spacingSlider" min="1" max="10" value="1">
