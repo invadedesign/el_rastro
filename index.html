@@ -64,6 +64,10 @@
       background-color: #FFAA80;
       color: black;
     }
+    .active {
+      background-color: #FFAA80;
+      color: black;
+    }
     .red-button {
       background-color: red;
       color: white;
@@ -305,6 +309,12 @@
 
     function toggleEffect() {
       outlineMode = !outlineMode;
+      let button = select('#toggleEffectButton');
+      if (outlineMode) {
+        button.addClass('active');
+      } else {
+        button.removeClass('active');
+      }
     }
 
     function resetEffect() {
